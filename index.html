@@ -1,0 +1,291 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#10171d">
+<title>PRESTO Fare Reader</title>
+<style>
+:root{color-scheme:light dark;--bg:#10171d;--panel:#1a252d;--line:#34444e;--muted:#a5b4bd;--text:#f5f8fa;--green:#16834d;--green-bright:#24df83;--red:#c92735;--red-bright:#ff525e;--white:#fff;--ink:#17242b}
+*{box-sizing:border-box}html,body{margin:0;min-height:100%;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:var(--bg);color:var(--text)}
+body{padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
+button{font:inherit;cursor:pointer;touch-action:manipulation;border:0;border-radius:13px;padding:14px 13px;min-height:49px;font-size:14px;font-weight:850;transition:transform .08s,filter .15s}
+button:active{transform:scale(.985)}button:disabled{opacity:.45;cursor:not-allowed}
+.app{width:min(100%,560px);margin:0 auto;min-height:100vh;padding-bottom:82px}
+header{display:flex;align-items:center;justify-content:space-between;padding:18px 18px 14px;background:#10171d;border-bottom:1px solid #2c3b44}
+.brand{font-size:31px;font-weight:950;letter-spacing:.12em;line-height:1;color:#fff}.brand span{color:#58e39b}
+.reader-label{font-size:10px;letter-spacing:.16em;color:#a5b4bd;font-weight:850;text-align:right;line-height:1.7}
+.page{display:none}.page.active{display:block}
+.statusbar{display:flex;align-items:center;gap:9px;padding:12px 19px;color:#c3cdd2;font-size:12px;background:#172128}
+.dot{width:8px;height:8px;border-radius:50%;background:#ffd477;flex:none}.dot.live{background:#58e39b;box-shadow:0 0 11px #58e39b77}.dot.error{background:#ff626c}
+.hero{padding:24px 18px 18px}.hero h1{font-size:25px;line-height:1.1;margin:0 0 8px;font-weight:950}.hero p{margin:0;color:#adbdc5;font-size:13px;line-height:1.5}
+.action-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:0 16px 18px}
+.btn-primary{background:#58e39b;color:#092518}.btn-secondary{background:#263943;color:#f6fafb;border:1px solid #40535e}.btn-outline{background:transparent;color:#eaf0f2;border:1px solid #52636c}
+.wide{grid-column:1/-1}
+.info-card{margin:0 16px 15px;background:#1a252d;border:1px solid #34444e;border-radius:17px;padding:15px}
+.info-title{font-size:11px;letter-spacing:.13em;font-weight:900;color:#a5b4bd;margin-bottom:12px}
+.info-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid #2d3b43;font-size:13px}.info-row:last-child{border-bottom:0}.info-row span{color:#a5b4bd}.info-row strong{text-align:right}
+.status-card{display:flex;align-items:center;gap:12px}.status-icon{width:40px;height:40px;display:grid;place-items:center;background:#2b3d46;border-radius:12px;font-size:20px}.status-card strong{display:block;font-size:14px}.status-card small{display:block;color:#a5b4bd;font-size:11px;margin-top:3px;line-height:1.35}
+.result-screen{min-height:46vh;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:28px 16px 30px;color:white;background:#283942;transition:background .2s}
+.result-screen.waiting{background:linear-gradient(145deg,#263a44,#1a2931)}
+.result-screen.success{background:linear-gradient(145deg,#169853,#08733e)}
+.result-screen.failure{background:linear-gradient(145deg,#d72c3a,#9f1423)}
+.result-kicker{font-size:11px;font-weight:950;letter-spacing:.2em;margin-bottom:12px;opacity:.9}
+.result-symbol{font-size:clamp(120px,36vw,180px);font-weight:950;line-height:.85;letter-spacing:-.07em;margin:8px 0 20px;text-shadow:0 6px 0 #0001}
+.result-title{font-size:clamp(28px,8vw,40px);line-height:1.02;letter-spacing:.01em;font-weight:1000;margin:0}
+.result-copy{font-size:14px;line-height:1.45;margin:13px 0 0;max-width:330px;color:#ffffffed}
+.scan-meta{background:#fff;color:var(--ink);margin:0 12px 16px;border-radius:0 0 17px 17px;box-shadow:0 10px 28px #0002;padding:4px 17px 13px}
+.scan-meta .info-title{color:#52636c;margin:11px 0 5px}.scan-meta .info-row{border-bottom:1px solid #e7ecef;font-size:13px}.scan-meta .info-row span{color:#65747b}.scan-meta .info-row strong{color:#17242b;overflow-wrap:anywhere}
+.result-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:0 16px 20px}
+.history-head{display:flex;align-items:center;justify-content:space-between;padding:22px 18px 13px}.history-head h1{margin:0;font-size:24px;font-weight:950}.count{font-size:10px;font-weight:900;letter-spacing:.1em;color:#a5b4bd}
+.history-list{padding:0 14px}.history-item{display:grid;grid-template-columns:36px 1fr auto;gap:11px;align-items:center;background:#1a252d;border:1px solid #34444e;border-radius:14px;padding:13px;margin-bottom:9px}
+.history-mark{font-size:27px;font-weight:1000;text-align:center}.history-mark.ok{color:#58e39b}.history-mark.no{color:#ff626c}.history-name{font-size:13px;font-weight:900}.history-time{font-size:11px;color:#a5b4bd;margin-top:4px}.history-tag{font-size:9px;letter-spacing:.08em;font-weight:950;padding:6px 7px;border-radius:6px;background:#234b37;color:#8cf0b7}.history-tag.no{background:#512830;color:#ff9ba1}
+.empty{padding:26px 18px;text-align:center;color:#a5b4bd;background:#1a252d;border:1px solid #34444e;border-radius:14px;font-size:13px}
+.notice{padding:0 18px 17px;color:#91a3ad;font-size:10px;line-height:1.5}.notice strong{color:#cbd5da}
+.bottom-nav{position:fixed;z-index:5;bottom:0;left:50%;transform:translateX(-50%);width:min(100%,560px);display:grid;grid-template-columns:1fr 1fr;background:#111a20;border-top:1px solid #35444d;padding:8px 14px calc(8px + env(safe-area-inset-bottom));box-shadow:0 -8px 24px #0003}
+.nav-btn{background:transparent;color:#9aabb4;min-height:54px;border-radius:12px;padding:6px}.nav-btn .nav-icon{display:block;font-size:20px;line-height:1.2}.nav-btn .nav-label{display:block;font-size:11px;margin-top:4px}.nav-btn.active{color:#58e39b;background:#20332c}
+.toast{margin:0 16px 15px;color:#ffd477;font-size:12px;line-height:1.4;text-align:center;min-height:16px}
+@media(min-height:800px){.result-screen{min-height:50vh}}
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<main class="app">
+<header>
+  <div class="brand" aria-label="PRESTO">PREST<span>O</span></div>
+  <div class="reader-label">FARE READER<br><span style="color:#e1e8eb">CONTACTLESS</span></div>
+</header>
+
+<section class="page active" id="homePage">
+  <div class="statusbar" role="status" aria-live="polite"><span class="dot" id="statusDot"></span><span id="statusText">Reader is standing by</span></div>
+  <div class="hero"><h1>Fare Reader</h1><p>Tap a card or tag to trigger a simulated fare result.</p></div>
+  <div class="action-grid">
+    <button class="btn-primary" id="startNfc">Start NFC Reader</button>
+    <button class="btn-secondary" id="manualScan">Simulate Tap</button>
+    <button class="btn-outline wide" id="stopNfc" disabled>Stop NFC Reader</button>
+  </div>
+  <div class="info-card status-card">
+    <div class="status-icon">⌁</div><div><strong id="readerState">Ready for a tap</strong><small id="readerHelp">NFC can be used as a trigger on supported Android browsers. Manual simulation always works.</small></div>
+  </div>
+  <div class="info-card">
+    <div class="info-title">READER STATUS</div>
+    <div class="info-row"><span>NFC listening</span><strong id="nfcValue">OFF</strong></div>
+    <div class="info-row"><span>Sound effects</span><strong>ON</strong></div>
+    <div class="info-row"><span>Recent scans</span><strong id="homeCount">0</strong></div>
+  </div>
+  <div class="notice"><strong>Costume prop:</strong> All fare decisions and card details are randomly simulated. This does not validate a real PRESTO fare or payment.</div>
+</section>
+
+<section class="page" id="resultPage">
+  <div class="result-screen waiting" id="resultScreen" aria-live="polite" aria-atomic="true">
+    <div class="result-kicker" id="resultKicker">READY TO TAP</div>
+    <div class="result-symbol" id="resultSymbol">⌁</div>
+    <h1 class="result-title" id="resultTitle">TAP YOUR CARD</h1>
+    <p class="result-copy" id="resultCopy">Start NFC or simulate a tap from the home screen.</p>
+  </div>
+  <div class="scan-meta">
+    <div class="info-title">FARE DETAILS · SIMULATED</div>
+    <div class="info-row"><span>Pass type</span><strong id="passType">—</strong></div>
+    <div class="info-row"><span>Card balance</span><strong id="balance">—</strong></div>
+    <div class="info-row"><span>Fare charged</span><strong id="fareCharged">—</strong></div>
+    <div class="info-row"><span>Transaction ID</span><strong id="transactionId">—</strong></div>
+    <div class="info-row"><span>Time</span><strong id="scanTime">—</strong></div>
+  </div>
+  <div class="result-actions">
+    <button class="btn-primary" id="newScan">New Scan</button>
+    <button class="btn-secondary" id="resultSimulate">Simulate Tap</button>
+    <button class="btn-outline wide" id="resultNfc">Start NFC Reader</button>
+  </div>
+  <div class="toast" id="toast" role="status"></div>
+  <div class="notice"><strong>Costume prop:</strong> The displayed balance, pass and transaction are fictional. No real card data is read or saved.</div>
+</section>
+
+<section class="page" id="historyPage">
+  <div class="history-head"><h1>Recent Scans</h1><span class="count" id="scanCount">0 SCANS</span></div>
+  <div class="history-list" id="historyList"><div class="empty">No scans yet. Your results will appear here.</div></div>
+  <div class="notice" style="padding-top:10px">Only generated scan outcomes and timestamps are kept in this page session. NFC tag contents are ignored.</div>
+</section>
+</main>
+
+<nav class="bottom-nav" aria-label="Main navigation">
+  <button class="nav-btn active" id="navHome" aria-current="page"><span class="nav-icon">▣</span><span class="nav-label">Home</span></button>
+  <button class="nav-btn" id="navHistory"><span class="nav-icon">◷</span><span class="nav-label">History</span></button>
+</nav>
+
+<script>
+(() => {
+"use strict";
+const $ = id => document.getElementById(id);
+const pages = {home:$("homePage"), result:$("resultPage"), history:$("historyPage")};
+let currentPage = "home", nfcReader = null, nfcController = null, listening = false;
+let busy = false, lastTagAt = 0, audioCtx = null, totalScans = 0, scans = [], toastTimer = null;
+
+function showPage(name) {
+  currentPage = name;
+  Object.entries(pages).forEach(([key, el]) => el.classList.toggle("active", key === name));
+  $("navHome").classList.toggle("active", name === "home");
+  $("navHistory").classList.toggle("active", name === "history");
+  if(name === "home") $("navHome").setAttribute("aria-current","page"); else $("navHome").removeAttribute("aria-current");
+  if(name === "history") $("navHistory").setAttribute("aria-current","page"); else $("navHistory").removeAttribute("aria-current");
+}
+function setStatus(text, kind="") {
+  $("statusText").textContent = text;
+  $("statusDot").className = "dot" + (kind ? " " + kind : "");
+  $("readerState").textContent = listening ? "NFC reader is active" : text;
+  $("nfcValue").textContent = listening ? "LISTENING" : "OFF";
+  $("startNfc").disabled = listening;
+  $("stopNfc").disabled = !listening;
+  $("startNfc").textContent = listening ? "NFC Reader Active" : "Start NFC Reader";
+  $("resultNfc").textContent = listening ? "Stop NFC Reader" : "Start NFC Reader";
+}
+function showToast(text) {
+  $("toast").textContent = text;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => $("toast").textContent = "", 7000);
+}
+function getAudio() {
+  const AC = window.AudioContext || window.webkitAudioContext;
+  if (!AC) return null;
+  if (!audioCtx) audioCtx = new AC();
+  if (audioCtx.state === "suspended") audioCtx.resume().catch(()=>{});
+  return audioCtx;
+}
+function tone(freq, start, duration, volume, type="sine") {
+  if (!audioCtx) return;
+  const osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
+  osc.type = type; osc.frequency.setValueAtTime(freq,start);
+  gain.gain.setValueAtTime(.0001,start);
+  gain.gain.exponentialRampToValueAtTime(volume,start+.02);
+  gain.gain.setValueAtTime(volume,start+Math.max(.03,duration-.04));
+  gain.gain.exponentialRampToValueAtTime(.0001,start+duration);
+  osc.connect(gain); gain.connect(audioCtx.destination);
+  osc.start(start); osc.stop(start+duration+.02);
+}
+function playSound(ok) {
+  try {
+    if(!getAudio()) return;
+    const t=audioCtx.currentTime+.02;
+    if(ok){tone(1046.5,t,.26,.52);tone(1318.5,t+.2,.36,.55);}
+    else{tone(220,t,.36,.55,"triangle");tone(164.8,t+.25,.42,.58,"triangle");}
+  }catch(_){}
+}
+function nowLabel(){return new Intl.DateTimeFormat(undefined,{month:"short",day:"2-digit",hour:"2-digit",minute:"2-digit",second:"2-digit"}).format(new Date());}
+function money(value){return (value<0?"−":"") + "$" + Math.abs(value).toLocaleString("en-CA",{minimumFractionDigits:2,maximumFractionDigits:2});}
+const passTypes=["Adult PRESTO","Youth fare","Senior fare","Monthly pass","Day pass","Student fare","Stored value"];
+function makeDetails(ok){
+  const pass=passTypes[Math.floor(Math.random()*passTypes.length)];
+  let balance;
+  if(ok) balance=(Math.random()*42+.75);
+  else balance= Math.random()<.55 ? -(Math.floor(Math.random()*9500000)+100000) - Math.random() : Math.random()*0.35;
+  const fare=ok ? [3.30,2.70,0,0][Math.floor(Math.random()*4)] : 0;
+  return {pass,balance:money(balance),fare:ok?(fare===0?"$0.00 (pass)":"$"+fare.toFixed(2)):"—",transaction:"PX-"+Math.random().toString(36).slice(2,8).toUpperCase(),time:nowLabel()};
+}
+function setDetail(id,value){$(id).textContent=value;}
+function addHistory(entry){
+  scans.unshift(entry); if(scans.length>40) scans.pop();
+  totalScans++;
+  $("scanCount").textContent=totalScans+(totalScans===1?" SCAN":" SCANS");
+  $("homeCount").textContent=String(totalScans);
+  renderHistory();
+}
+function renderHistory(){
+  const list=$("historyList"); list.textContent="";
+  if(!scans.length){const e=document.createElement("div");e.className="empty";e.textContent="No scans yet. Your results will appear here.";list.append(e);return;}
+  scans.forEach(s=>{
+    const row=document.createElement("div");row.className="history-item";
+    const mark=document.createElement("div");mark.className="history-mark "+(s.ok?"ok":"no");mark.textContent=s.ok?"✓":"✕";
+    const info=document.createElement("div");
+    const name=document.createElement("div");name.className="history-name";name.textContent=s.ok?"FARE ACCEPTED":"FARE NOT ACCEPTED";
+    const time=document.createElement("div");time.className="history-time";time.textContent=s.details.time+" · "+s.details.pass;
+    info.append(name,time);
+    const tag=document.createElement("span");tag.className="history-tag"+(s.ok?"":" no");tag.textContent=s.ok?"ACCEPTED":"REJECTED";
+    row.append(mark,info,tag);list.append(row);
+  });
+}
+function resetResult(){
+  $("resultScreen").className="result-screen waiting";
+  setDetail("resultKicker","READY TO TAP");setDetail("resultSymbol","⌁");
+  setDetail("resultTitle","TAP YOUR CARD");
+  setDetail("resultCopy","Start NFC or simulate a tap from the home screen.");
+  ["passType","balance","fareCharged","transactionId","scanTime"].forEach(id=>setDetail(id,"—"));
+  showPage("home");
+}
+function runScan(source="manual"){
+  if(busy)return;
+  busy=true; getAudio();
+  showPage("result");
+  $("resultScreen").className="result-screen waiting";
+  setDetail("resultKicker",source==="nfc"?"CARD DETECTED":"SCAN IN PROGRESS");
+  setDetail("resultSymbol","…");setDetail("resultTitle","CHECKING FARE");
+  setDetail("resultCopy","Please wait…");
+  setStatus("Processing tap");
+  setTimeout(()=>{
+    const ok=Math.random()<.8, details=makeDetails(ok), entry={ok,details,source};
+    $("resultScreen").className="result-screen "+(ok?"success":"failure");
+    setDetail("resultKicker",ok?"FARE STATUS · ACCEPTED":"FARE STATUS · REJECTED");
+    setDetail("resultSymbol",ok?"✓":"✕");
+    setDetail("resultTitle",ok?"FARE ACCEPTED":"FARE NOT ACCEPTED");
+    setDetail("resultCopy",ok?"You're all set. Have a good trip.":"Unable to validate this fare. Please try again.");
+    setDetail("passType",details.pass);setDetail("balance",details.balance);
+    setDetail("fareCharged",details.fare);setDetail("transactionId",details.transaction);setDetail("scanTime",details.time);
+    setStatus(ok?"Scan complete — accepted":"Scan complete — rejected",ok?"live":"error");
+    playSound(ok);addHistory(entry);busy=false;
+  },420);
+}
+async function startNfc(){
+  if(!("NDEFReader" in window)){
+    setStatus("NFC unavailable — manual mode ready","error");
+    showToast("Web NFC is unavailable in this browser context. Try Chrome on Android with NFC enabled, or use Simulate Tap.");
+    $("readerHelp").textContent="NFC is unavailable in this browser context. Manual simulation works.";
+    return;
+  }
+  try{
+    // Start scanning directly from the click gesture so Chrome can request permission.
+    const reader=new NDEFReader();
+    const controller=new AbortController();
+    await reader.scan({signal:controller.signal});
+    nfcReader=reader;nfcController=controller;listening=true;
+    setStatus("NFC reader is listening","live");
+    $("readerHelp").textContent="Listening for NFC tags. Tag contents are ignored.";
+    showToast("NFC listening is active. Tap a compatible card or tag.");
+    reader.addEventListener("reading",()=>{
+      const now=Date.now();
+      if(now-lastTagAt<1800||busy)return;
+      lastTagAt=now;runScan("nfc");
+    },{signal:controller.signal});
+    reader.addEventListener("readingerror",()=>showToast("Tag detected but could not be read. Try tapping again."),{signal:controller.signal});
+  }catch(err){
+    listening=false;
+    if(err && (err.name==="NotAllowedError"||err.name==="SecurityError")){
+      setStatus("NFC permission denied","error");
+      $("readerHelp").textContent="Chrome or Android denied NFC scanning. Check site permissions and Android NFC settings.";
+      showToast("NFC permission was denied by the browser or device. Confirm NFC is enabled in Android Settings, then reload the page and try again.");
+    }else if(err&&err.name==="NotSupportedError"){
+      setStatus("NFC unsupported","error");showToast("This browser/device does not support Web NFC. Use Simulate Tap.");
+    }else{
+      setStatus("Could not start NFC","error");
+      showToast("Could not start NFC. Try opening this file in Chrome with NFC enabled. Manual simulation still works.");
+    }
+  }
+}
+function stopNfc(){
+  try{if(nfcController)nfcController.abort();}catch(_){}
+  nfcController=null;nfcReader=null;listening=false;
+  setStatus("NFC reader stopped");
+  $("readerHelp").textContent="Reader stopped. Start NFC to listen again, or use manual simulation.";
+  showToast("NFC reader stopped.");
+}
+$("navHome").addEventListener("click",()=>showPage("home"));
+$("navHistory").addEventListener("click",()=>{renderHistory();showPage("history");});
+$("startNfc").addEventListener("click",()=>{getAudio();startNfc();});
+$("stopNfc").addEventListener("click",stopNfc);
+$("resultNfc").addEventListener("click",()=>listening?stopNfc():startNfc());
+$("manualScan").addEventListener("click",()=>{getAudio();runScan("manual");});
+$("resultSimulate").addEventListener("click",()=>{getAudio();runScan("manual");});
+$("newScan").addEventListener("click",()=>{busy=false;resetResult();});
+document.addEventListener("visibilitychange",()=>{if(document.hidden&&listening)showToast("Keep the page open while using NFC.");});
+setStatus("Reader is standing by");
+})();
+</script>
+</body>
+</html>
